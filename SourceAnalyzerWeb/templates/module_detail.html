@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.name }} - {{ site.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- 导航栏 -->
+<nav class="navbar navbar-dark">
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">
+            <span class="brand-icon">&#x2696;</span>
+            <span class="brand-text">Godot <span class="accent">DeepDive</span></span>
+        </a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/comparison" class="nav-link {% if active_page == 'comparison' %}active{% endif %}">UE vs Godot</a>
+        </div>
+    </div>
+</nav>
+
+<!-- 模块头部信息 -->
+<section class="module-hero" style="--module-color: {{ config.color }}">
+    <div class="container">
+        <!-- 面包屑 -->
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo;
+            <span class="current">{{ config.name }}</span>
+        </div>
+
+        <div class="module-header-grid">
+            <div class="module-title-area">
+                <h1 class="module-main-icon">{{ config.icon }}</h1>
+                <div class="module-title-group">
+                    <h1 class="module-name-en">{{ config.name }}</h1>
+                    <h2 class="module-name-cn">{{ config.get('name_cn', '') }}</h2>
+                </div>
+            </div>
+
+            <div class="module-meta-cards">
+                <div class="meta-card">
+                    <span class="meta-label">Godot Module</span>
+                    <span class="meta-value">{{ config.name }}</span>
+                </div>
+                <div class="meta-card meta-card-ue">
+                    <span class="meta-label">UE Equivalent</span>
+                    <span class="meta-value ue-text">{{ config.ue }}</span>
+                </div>
+                <div class="meta-card">
+                    <span class="meta-label">Volume</span>
+                    <span class="meta-value">#{{ "%02d"|format(config.vol) }}</span>
+                </div>
+                {% if config.highlight %}
+                <div class="meta-card meta-highlight">
+                    <span class="meta-value">&#11088; Key Module</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 报告内容 -->
+<article class="report-content container" style="--module-color: {{ config.color }}">
+    
+    <!-- 目录侧边栏 + 内容区域 -->
+    <aside class="toc-sidebar" id="toc-sidebar">
+        <h4 class="toc-title">&#128196; Table of Contents</h4>
+        <nav id="toc-nav" class="toc-nav"></nav>
+    </aside>
+
+    <main class="report-body" id="report-body">
+        {{ content_html|safe }}
+    </main>
+
+</article>
+
+<!-- 底部导航 -->
+<nav class="module-pagination container">
+    {% if prev_module %}
+    <a href="/module/{{ prev_module }}" class="page-nav page-prev" style="--card-accent: {{ prev_module.color }}">
+        <span class="nav-arrow">&#8592;</span>
+        <div class="nav-info">
+            <span class="nav-label">Previous</span>
+            <span class="nav-module">{{ prev_module.icon }} {{ prev_module.name }}</span>
+        </div>
+    </a>
+    {% else %}
+    <div class="page-nav-placeholder"></div>
+    {% endif %}
+
+    <a href="/" class="page-nav page-center">&#8962; Back to Index</a>
+
+    {% if next_module %}
+    <a href="/module/{{ next_module }}" class="page-nav page-next" style="--card-accent: {{ next_module.color }}">
+        <div class="nav-info" style="text-align: right;">
+            <span class="nav-label">Next</span>
+            <span class="nav-module">{{ next_module.icon }} {{ next_module.name }}</span>
+        </div>
+        <span class="nav-arrow">&#8594;</span>
+    </a>
+    {% else %}
+    <div class="page-nav-placeholder"></div>
+    {% endif %}
+</nav>
+
+<!-- 页脚 -->
+<footer class="site-footer">
+    <div class="container footer-content">
+        <div class="footer-left">
+            <strong>Godot DeepDive</strong> &mdash; AI-powered engine source code analysis.
+        </div>
+        <div class="footer-right">
+            Powered by Python Flask + LLM
+        </div>
+    </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+// ===== TOC 自动生成 =====
+document.addEventListener('DOMContentLoaded', () => {
+    const reportBody = document.getElementById('report-body');
+    const tocNav = document.getElementById('toc-nav');
+    
+    if (!reportBody || !tocNav) return;
+    
+    // 收集所有 h1-h3 标题
+    const headings = reportBody.querySelectorAll('h1, h2, h3, h4');
+    
+    if (headings.length === 0) {
+        tocNav.innerHTML = '<p class="toc-empty">No sections found</p>';
+        return;
+    }
+    
+    let html = '';
+    let currentIdCounter = 0;
+    
+    headings.forEach((heading, idx) => {
+        if (!heading.id) {
+            heading.id = `section-${currentIdCounter++}`;
+        }
+        
+        const level = parseInt(heading.tagName[1]);
+        const indent = (level - 1) * 16;
+        
+        html += `<a href="#${heading.id}" class="toc-link" style="padding-left: ${indent}px" data-level="${level}">${heading.textContent}</a>`;
+    });
+    
+    tocNav.innerHTML = html;
+    
+    // 高亮当前阅读位置
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+                const link = document.querySelector(`.toc-link[href="#${entry.target.id}"]`);
+                if (link) link.classList.add('active');
+            }
+        });
+    }, { rootMargin: '-60px 0px -70% 0px' });
+    
+    headings.forEach(h => observer.observe(h));
+});
+</script>
+</body>
+</html>

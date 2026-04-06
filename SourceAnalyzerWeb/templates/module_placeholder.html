@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.name }} - Report Not Ready | {{ site.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">
+            <span class="brand-icon">&#x2696;</span>
+            <span class="brand-text">Godot <span class="accent">DeepDive</span></span>
+        </a>
+    </div>
+</nav>
+
+<section class="placeholder-page">
+    <div class="container placeholder-content">
+        <div class="placeholder-icon">{{ config.icon }}</div>
+        <h1>{{ config.name }}</h1>
+        <p class="placeholder-sub">{{ config.get('name_cn', '') }}</p>
+        
+        <div class="placeholder-card">
+            <h3>&#9203; Report Not Yet Generated</h3>
+            <p>The AI analysis for this module hasn't been run yet.</p>
+            <p>To generate this report, run:</p>
+            <pre><code>python main.py --source ./godot-4.6 \
+      --modules {{ module_id }} \
+      --api-key YOUR_KEY</code></pre>
+            
+            <div class="placeholder-meta">
+                <span><strong>UE Equivalent:</strong> {{ config.ue }}</span>
+                <span><strong>ID:</strong> {{ module_id }}</span>
+                <span style="--card-accent: {{ config.color }}; color: {{ config.color }}">
+                    <strong>Status:</strong> Pending
+                </span>
+            </div>
+        </div>
+        
+        <a href="/" class="hero-cta">Back to Home</a>
+    </div>
+</section>
+
+<footer class="site-footer">
+    <div class="container footer-content">
+        Godot DeepDive &mdash; Powered by Python Flask + LLM
+    </div>
+</footer>
+
+</body>
+</html>

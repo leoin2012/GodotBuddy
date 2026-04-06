@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UE vs Godot Comparison | {{ site.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-dark">
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">
+            <span class="brand-icon">&#x2696;</span>
+            <span class="brand-text">Godot <span class="accent">DeepDive</span></span>
+        </a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/comparison" class="nav-link active">UE vs Godot</a>
+        </div>
+    </div>
+</nav>
+
+<section class="comp-hero">
+    <div class="container">
+        <h1 class="comp-title">
+            <span class="comp-logo-godot">GODOT</span>
+            <span class="comp-vs">vs</span>
+            <span class="comp-logo-ue">UNREAL</span>
+        </h1>
+        <p class="comp-subtitle">Concept Mapping &amp; Architecture Comparison</p>
+    </div>
+</section>
+
+<article class="report-content container comparison-page">
+    {% if content_html %}
+    <main class="report-body report-body-full">{{ content_html|safe }}</main>
+    {% else %}
+    <main class="report-body report-body-full">
+        <div class="placeholder-card-inline">
+            <h3>Comparison Report Not Generated</h3>
+            <p>Run the full analysis to generate this page:</p>
+            <pre><code>python main.py --source ./godot-4.6 --api-key YOUR_KEY</code></pre>
+        </div>
+        
+        <!-- 预置对比表（即使没有报告也能展示基本内容） -->
+        <h2>&#128202; Core Concept Quick Reference</h2>
+        <table class="comp-table">
+            <thead><tr>
+                <th>Godot Concept</th>
+                <th>Unreal Engine Equivalent</th>
+                <th>Key Difference</th>
+            </tr></thead>
+            <tbody>
+                <tr><td>Object (base)</td><td>UObject</td><td>Godot uses ref-counting; UE uses GC</td></tr>
+                <tr><td>Node</td><td>AActor / USceneComponent</td><td>Godot Node is lighter, no Actor/Component split</td></tr>
+                <tr><td>RefCounted</td><td>TSharedPtr / TWeakPtr</td><td>Explicit ref count vs multiple smart pointers</td></tr>
+                <tr><td>SceneTree</td><td>UWorld + ULevel</td><td>Singular tree vs multi-world architecture</td></tr>
+                <tr><td>Resource</td><td>UObject Data Asset</td><td>Similar but Resource is more lightweight</td></tr>
+                <tr><td>Signal</td><td>Delegate / Event (Multicast)</td><td>Different syntax, similar semantics</td></tr>
+                <tr><td>GDScript VM</td><td>Blueprint VM + Bytecode</td><td>GDScript is Python-like; BP is visual</td></tr>
+                <tr><td>RenderingServer</td><td>RHI + Renderer Module</td><td>Both command-buffer pattern but different APIs</td></tr>
+                <tr><td>PhysicsServer</td><td>PhysX / Chaos Interface</td><td>Both allow swappable physics backends</td></tr>
+                <tr><td>Control (UI)</td><td>UWidget (UMG/Slate)</td><td>Both support declarative layouts</td></tr>
+                <tr><td>AnimationPlayer</td><td>UAnimInstance (AnimBP)</td><td>Declarative vs graphical state machine</td></tr>
+                <tr><td>InputMap / Action</td><td>EnhancedInput Action</td><td>Very similar Action Mapping approach</td></tr>
+                <tr><td>NavigationServer</td><td>UNavigationSystemV1</td><td>Both based on Recast/Detour</td></tr>
+                <tr><td>MultiplayerAPI</td><td>Replication System + RPC</td><td>Godot's high-level API is simpler</td></tr>
+            </tbody>
+        </table>
+        
+        <h2>&#127912; Architecture Pattern Comparison</h2>
+        <table class="comp-table">
+            <thead><tr>
+                <th>Dimension</th>
+                <th>Godot</th>
+                <th>Unreal Engine</th>
+            </tr></thead>
+            <tbody>
+                <tr><td>Paradigm</td><td>OOP + data-driven (GDScript/C#)</td><td>Component-based (C++/Blueprint)</td></tr>
+                <tr><td>Memory</td><td>Reference counting</td><td>Mark-sweep GC + smart pointers</td></tr>
+                <tr><td>Scene Graph</td><td>Flat Node Tree</td><td>World -> Level -> Actor -> Component</td></tr>
+                <tr><td>Rendering</td><td>Server mode (RenderingServer)</td><td>RHI -> Renderer -> SceneRenderer</td></tr>
+                <tr><td>Script Binding</td><td>GDExtension / C# (Mono)</td><td>UObject Reflection + Blueprint</td></tr>
+                <tr><td>Editor Extensibility</td><td>EditorPlugin (GD/C#)</td><td>Editor Mode / Toolkit (C++)</td></tr>
+                <tr><td>Cross-platform</td><td>Custom Platform abstraction</td><td>GenericPlatform -> XXXPlatform</td></tr>
+                <tr><td>License</td><td>MIT (fully free)</td><td>Custom (license-based)</td></tr>
+                <tr><td>Learning Curve</td><td>Low-Medium (GDScript friendly)</td><td>Medium-High (C++ complexity)</td></tr>
+            </tbody>
+        </table>
+    {% endif %}
+</article>
+
+<footer class="site-footer">
+    <div class="container footer-content">
+        Godot DeepDive &mdash; AI-powered engine source code analysis
+    </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

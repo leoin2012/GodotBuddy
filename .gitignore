@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# 缓存目录（扫描缓存和临时Prompt文件）
+Cache/
+
+# 报告目录（可选，如果你想保留报告在仓库中则注释掉这行）
+# Reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Godot（如果工作区包含Godot项目）
+.godot/
+.import/

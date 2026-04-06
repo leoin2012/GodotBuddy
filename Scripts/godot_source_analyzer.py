@@ -89,6 +89,7 @@ def load_config(config_path=None):
         'modules': cfg.get('SourceAnalysis', 'modules', fallback='').strip(),
         'max_files_per_module': cfg.getint('SourceAnalysis', 'max_files_per_module', fallback=25),
         'max_file_tokens': cfg.getint('SourceAnalysis', 'max_file_tokens', fallback=8000),
+        'force_rerun': cfg.get('SourceAnalysis', 'force_rerun', fallback='false').strip(),
     }
     
     return cfg, knot_config, source_config
@@ -454,18 +455,37 @@ def run_analysis(knot_config, source_config):
     print(f"  Model: {knot_config['model']}")
     print()
     
+    # 是否强制重新分析（默认跳过已有报告）
+    force_rerun = source_config.get('force_rerun', 'false').lower() in ('true', '1', 'yes')
+    
     results = {}
+    skip_count = 0
     for idx, (cat_id, sl) in enumerate(target_modules, 1):
         module_cfg = MODULE_CATEGORIES.get(cat_id, {})
         module_name = module_cfg.get('name', cat_id)
         
+        # 报告路径
+        report_path = os.path.join(output_dir, f"{cat_id}.md")
+        
         print(f"  [{idx}/{len(target_modules)}] {module_name} ({cat_id})...")
+        
+        # 跳过已有报告（文件存在且大小 > 1KB 视为有效报告）
+        if not force_rerun and os.path.exists(report_path):
+            existing_size = os.path.getsize(report_path)
+            if existing_size > 1024:
+                skip_count += 1
+                results[cat_id] = {
+                    'success': True,
+                    'message': f"已有报告，跳过 ({existing_size:,} bytes)",
+                    'report_path': report_path,
+                    'skipped': True,
+                }
+                print(f"    ⏭️  已有报告，跳过 ({existing_size:,} bytes)")
+                print()
+                continue
         
         # 构建文件列表（传入 module_cfg 以标注核心文件）
         file_list_text = build_file_list_text(slicer, sl, source_config['max_files_per_module'], module_cfg)
-        
-        # 报告路径
-        report_path = os.path.join(output_dir, f"{cat_id}.md")
         
         # 构建 Prompt（从外部 md 文件加载模板）
         prompt_template_path = source_config.get('prompt_file', '') or None
@@ -490,6 +510,7 @@ def run_analysis(knot_config, source_config):
             'success': success,
             'message': msg,
             'report_path': report_path if success else None,
+            'skipped': False,
         }
         
         status = "✅" if success else "❌"
@@ -498,8 +519,11 @@ def run_analysis(knot_config, source_config):
     
     # 汇总
     success_count = sum(1 for r in results.values() if r['success'])
-    fail_count = len(results) - success_count
-    print(f"\n  [Done] {success_count} succeeded, {fail_count} failed -> {output_dir}")
+    new_count = sum(1 for r in results.values() if r['success'] and not r.get('skipped'))
+    fail_count = sum(1 for r in results.values() if not r['success'])
+    print(f"\n  [Done] {success_count} succeeded ({new_count} new, {skip_count} skipped), {fail_count} failed -> {output_dir}")
+    if skip_count > 0:
+        print(f"  [Tip] 如需强制重新分析，在 config.ini [SourceAnalysis] 中设置 force_rerun = true")
     
     return success_count > 0
 

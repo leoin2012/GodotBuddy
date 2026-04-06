@@ -151,7 +151,17 @@ def build_module_prompt(module_id, module_config, file_list_text, report_path, p
             "对比内容以架构层面为主，不涉及 UE 源码细节。"
         )
     
-    return template.format(
+    # 构建分析要点文本
+    analysis_points = module_config.get('analysis_points', [])
+    if analysis_points:
+        points_text = "\n## 本模块必须覆盖的分析要点\n\n"
+        for i, point in enumerate(analysis_points, 1):
+            points_text += f"{i}. {point}\n"
+        points_text += "\n请确保以上每个要点都在报告中有充分的分析。\n"
+    else:
+        points_text = ""
+    
+    filled = template.format(
         target_reader=TARGET_READER_BACKGROUND,
         analysis_mode=analysis_mode,
         module_id=module_id,
@@ -162,17 +172,57 @@ def build_module_prompt(module_id, module_config, file_list_text, report_path, p
         file_list=file_list_text,
         report_path=report_path,
     )
+    
+    # 在报告输出路径之前插入分析要点
+    if points_text:
+        filled += "\n" + points_text
+    
+    return filled
 
 
-def build_file_list_text(slicer, slice_data, max_files=25):
-    """构建模块文件列表文本"""
+def build_file_list_text(slicer, slice_data, max_files=40, module_config=None):
+    """构建模块文件列表文本，标注核心文件（slice_data.files 中的元素是 CodeFile 对象）"""
+    # 获取核心文件列表
+    key_files_set = set()
+    if module_config and 'key_files' in module_config:
+        key_files_set = set(module_config['key_files'])
+    
+    # 分离核心文件和普通文件
+    key_file_entries = []
+    normal_file_entries = []
+    for f in slice_data.files:
+        rel_path = f.relative_path
+        is_key = rel_path in key_files_set or rel_path.replace('\\', '/') in key_files_set
+        if is_key:
+            key_file_entries.append(f)
+        else:
+            normal_file_entries.append(f)
+    
     lines = []
-    files = slice_data.files[:max_files]
-    for f in files:
-        rel_path = os.path.relpath(f['path'], slicer.source_root) if 'path' in f else f.get('relative_path', '')
-        lines.append(f"- `{rel_path}` ({f.get('lines', 0)} 行)")
-    if len(slice_data.files) > max_files:
-        lines.append(f"- ... 还有 {len(slice_data.files) - max_files} 个文件（已截断）")
+    
+    # 先列出核心文件（带星号标记）
+    if key_file_entries:
+        lines.append("### 核心文件（必读，优先分析）")
+        for f in key_file_entries:
+            lines.append(f"- **`{f.relative_path}`** ({f.line_count} 行) ★")
+        lines.append("")
+    
+    # 再列出普通文件
+    remaining_slots = max_files - len(key_file_entries)
+    if remaining_slots > 0 and normal_file_entries:
+        lines.append("### 其他文件")
+        for f in normal_file_entries[:remaining_slots]:
+            lines.append(f"- `{f.relative_path}` ({f.line_count} 行)")
+        if len(normal_file_entries) > remaining_slots:
+            lines.append(f"- ... 还有 {len(normal_file_entries) - remaining_slots} 个文件（已截断）")
+    
+    # 如果没有匹配到核心文件（可能是扫描未覆盖），直接列出 key_files 配置
+    if not key_file_entries and key_files_set:
+        lines.append("### 建议优先阅读的核心文件")
+        for kf in sorted(key_files_set):
+            lines.append(f"- **`{kf}`** ★")
+        lines.append("")
+    
     return "\n".join(lines)
 
 
@@ -411,8 +461,8 @@ def run_analysis(knot_config, source_config):
         
         print(f"  [{idx}/{len(target_modules)}] {module_name} ({cat_id})...")
         
-        # 构建文件列表
-        file_list_text = build_file_list_text(slicer, sl, source_config['max_files_per_module'])
+        # 构建文件列表（传入 module_cfg 以标注核心文件）
+        file_list_text = build_file_list_text(slicer, sl, source_config['max_files_per_module'], module_cfg)
         
         # 报告路径
         report_path = os.path.join(output_dir, f"{cat_id}.md")

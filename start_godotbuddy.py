@@ -309,35 +309,47 @@ def show_source_menu(cfg):
 
 
 MODULE_LIST = """
-  +--------------------------------------------------------------+
-  |  ID                        Name              Priority        |
-  +--------------------------------------------------------------+
-  |  01_core_foundation        Core Foundation   [*****]         |
-  |  02_object_system       *  Object System     [*****]         |
-  |  03_memory_management      Memory Mgmt       [****]          |
-  |  04_math_library           Math Library       [****]          |
-  |  05_io_system              I/O System         [***]           |
-  |  06_rendering_server    *  Rendering Server   [*****]         |
-  |  07_graphics_drivers       Graphics Drivers   [****]          |
-  |  08_scene_tree_2d          Scene Tree 2D      [****]          |
-  |  09_scene_tree_3d          Scene Tree 3D      [****]          |
-  |  10_scene_main          *  Scene Tree Core    [*****]         |
-  |  11_physics_2d             Physics 2D         [***]           |
-  |  12_physics_3d             Physics 3D         [***]           |
-  |  13_script_system       *  Script System      [*****]         |
-  |  14_animation_system       Animation          [***]           |
-  |  15_resource_system        Resource System    [****]          |
-  |  16_import_pipeline        Import Pipeline    [***]           |
-  |  17_audio_system           Audio System       [****]          |
-  |  18_input_system           Input System       [***]           |
-  |  19_ui_system              UI System          [***]           |
-  |  20_navigation             Navigation         [****]          |
-  |  21_editor_framework       Editor Framework   [****]          |
-  |  22_networking             Networking         [****]          |
-  |  23_platform_abstraction   Platform Layer     [*****]         |
-  |  24_optional_modules       Optional Modules   [*****]         |
-  +--------------------------------------------------------------+
-    * = Key highlighted module
+  +----------------------------------------------------------------+
+  |  ID                          Name                  Priority    |
+  +----------------------------------------------------------------+
+  |  -- Core Foundation Layer --                                   |
+  |  01_core_foundation       *  Core Foundation       [*****]     |
+  |  02_object_system         *  Object System         [*****]     |
+  |  03_variant_type_system   *  Variant Type System   [*****]     |
+  |  04_math_library             Math Library          [****]      |
+  |  05_io_resource_system       I/O & Resource        [****]      |
+  |  -- Scene & Node Layer --                                      |
+  |  06_scene_tree_core       *  Scene Tree Core       [*****]     |
+  |  07_scene_2d                 2D Scene Nodes        [****]      |
+  |  08_scene_3d                 3D Scene Nodes        [****]      |
+  |  09_gui_system               GUI / UI System       [****]      |
+  |  -- Server Architecture --                                     |
+  |  10_rendering_server      *  Rendering Server      [*****]     |
+  |  11_graphics_drivers         Graphics Drivers      [***]       |
+  |  12_physics_2d               2D Physics            [***]       |
+  |  13_physics_3d               3D Physics            [****]      |
+  |  14_audio_system             Audio System          [***]       |
+  |  -- Script & Extension --                                      |
+  |  15_gdextension              GDExtension           [****]      |
+  |  16_gdscript              *  GDScript System       [*****]     |
+  |  -- Animation & Navigation --                                  |
+  |  17_animation_system         Animation             [****]      |
+  |  18_input_system             Input System          [***]       |
+  |  19_navigation_system        Navigation            [***]       |
+  |  -- Editor & Tools --                                          |
+  |  20_editor_framework         Editor Framework      [***]       |
+  |  21_import_pipeline          Import Pipeline       [***]       |
+  |  -- Platform & Networking --                                   |
+  |  22_display_server           Display Server        [***]       |
+  |  23_platform_layer           Platform Layer        [****]      |
+  |  24_networking               Networking            [***]       |
+  |  -- Specialized Systems --                                     |
+  |  25_text_server              Text Server           [****]      |
+  |  26_xr_system                XR / VR System        [****]      |
+  |  27_scene_resources          Scene Resources       [****]      |
+  |  28_optional_modules         Optional Modules      [*****]     |
+  +----------------------------------------------------------------+
+    * = Key highlighted module (6 core modules)
 """
 
 
@@ -387,15 +399,17 @@ def menu_loop():
                     pause()
                 elif sc == "2":
                     print()
-                    print("  Available module IDs:")
-                    print("    01_core_foundation     02_object_system       03_memory_management")
-                    print("    04_math_library        05_io_system           06_rendering_server")
-                    print("    07_graphics_drivers    08_scene_tree_2d       09_scene_tree_3d")
-                    print("    10_scene_main          11_physics_2d          12_physics_3d")
-                    print("    13_script_system       14_animation_system    15_resource_system")
-                    print("    16_import_pipeline     17_audio_system        18_input_system")
-                    print("    19_ui_system           20_navigation          21_editor_framework")
-                    print("    22_networking          23_platform_abstraction 24_optional_modules")
+                    print("  Available module IDs (28 modules):")
+                    print("    01_core_foundation      02_object_system        03_variant_type_system")
+                    print("    04_math_library         05_io_resource_system   06_scene_tree_core")
+                    print("    07_scene_2d             08_scene_3d             09_gui_system")
+                    print("    10_rendering_server     11_graphics_drivers     12_physics_2d")
+                    print("    13_physics_3d           14_audio_system         15_gdextension")
+                    print("    16_gdscript             17_animation_system     18_input_system")
+                    print("    19_navigation_system    20_editor_framework     21_import_pipeline")
+                    print("    22_display_server       23_platform_layer       24_networking")
+                    print("    25_text_server          26_xr_system            27_scene_resources")
+                    print("    28_optional_modules")
                     print()
                     mods = input("  Enter module IDs (comma-separated, e.g. 02,06,13): ").strip()
                     if mods:
@@ -407,7 +421,7 @@ def menu_loop():
                 elif sc == "4":
                     print("\n  [INFO] Analyzing core modules: Object, Rendering, SceneTree, Script...")
                     run_python_script("godot_source_analyzer.py",
-                                     ["--modules", "02_object_system,06_rendering_server,10_scene_main,13_script_system"])
+                                     ["--modules", "02_object_system,03_variant_type_system,06_scene_tree_core,10_rendering_server,16_gdscript"])
                     pause()
                 elif sc == "5":
                     print(MODULE_LIST)

@@ -21,7 +21,7 @@ Thumbs.db
 .DS_Store
 
 # Godot 引擎源码（独立 clone，不纳入 GodotBuddy 仓库）
-GodotEngine/
+# GodotEngine/
 
 # Godot（如果工作区包含Godot项目）
 .godot/

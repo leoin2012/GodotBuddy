@@ -51,7 +51,8 @@ import knot_cli_setup
 
 def load_config():
     """
-    读取 config.ini，返回 (global_config, projects_list)。
+    读取 config.ini，返回 (cfg, global_config, projects_list)。
+    适配精简后的统一 knot-cli 配置结构。
     """
     config_path = os.path.join(ROOT_DIR, "config.ini")
     if not os.path.exists(config_path):
@@ -61,21 +62,20 @@ def load_config():
     cfg = configparser.ConfigParser()
     cfg.read(config_path, encoding="utf-8")
 
-    # 全局配置
+    # 全局配置（合并 General + KnotCLI + ProjectAnalysis + Scanner）
     global_config = {
-        "version": cfg.get("General", "version", fallback="1.0"),
+        "version": cfg.get("General", "version", fallback="2.0"),
         "reports_base_dir": cfg.get("General", "reports_base_dir", fallback="").strip(),
         "cache_base_dir": cfg.get("General", "cache_base_dir", fallback="").strip(),
-        # Analysis
-        "cli_tool_command": cfg.get("Analysis", "cli_tool_command", fallback="knot-cli").strip(),
-        "cli_tool_args_template": cfg.get("Analysis", "cli_tool_args_template", fallback="").strip(),
-        "cli_tool_workspace": cfg.get("Analysis", "cli_tool_workspace", fallback="").strip(),
-        "cli_tool_model": cfg.get("Analysis", "cli_tool_model", fallback="claude-4.6-opus").strip(),
-        "cli_tool_user_rules": cfg.get("Analysis", "cli_tool_user_rules", fallback="").strip(),
-        "cli_tool_timeout": cfg.getint("Analysis", "cli_tool_timeout", fallback=1800),
-        "analysis_mode": cfg.get("Analysis", "analysis_mode", fallback="agent").strip(),
-        "max_input_tokens": cfg.getint("Analysis", "max_input_tokens", fallback=70000),
-        "max_concurrent": cfg.getint("Analysis", "max_concurrent", fallback=3),
+        # KnotCLI
+        "cli_tool_command": cfg.get("KnotCLI", "command", fallback="knot-cli").strip(),
+        "cli_tool_model": cfg.get("KnotCLI", "model", fallback="claude-4.6-opus").strip(),
+        "cli_tool_user_rules": cfg.get("KnotCLI", "user_rules", fallback="").strip(),
+        "cli_tool_timeout": cfg.getint("KnotCLI", "timeout", fallback=1800),
+        # ProjectAnalysis
+        "cli_tool_args_template": cfg.get("ProjectAnalysis", "cli_args_template", fallback="").strip(),
+        "prompt_file": cfg.get("ProjectAnalysis", "prompt_file", fallback="").strip(),
+        "max_concurrent": cfg.getint("ProjectAnalysis", "max_concurrent", fallback=3),
         # Scanner
         "ignore_dirs": cfg.get("Scanner", "ignore_dirs", fallback=".godot,.import,addons,build,export").strip(),
         "scan_extensions": cfg.get("Scanner", "scan_extensions", fallback=".gd,.tscn,.tres,.gdshader,.cfg").strip(),
@@ -289,14 +289,14 @@ def main():
 
     print(f"  [OK] 项目数: {len(projects)}")
     print(f"  [OK] Reports 目录: {global_config['reports_base_dir']}")
-    print(f"  [OK] 分析模式: {global_config['analysis_mode']}")
+    print(f"  [OK] AI 引擎: knot-cli")
     print(f"  [OK] AI 模型: {global_config['cli_tool_model']}")
     print()
 
     # 确保 knot-cli 就绪（如果不是仅扫描模式）
     if not args.scan_only:
         print("  [环境] 检查 knot-cli...")
-        knot_ok, knot_msg = knot_cli_setup.ensure_knot_cli(cfg, verbose=True)
+        knot_ok, knot_msg = knot_cli_setup.ensure_knot_cli(cfg, section="KnotCLI", verbose=True)
         if not knot_ok:
             print(f"  [WARN] knot-cli 环境问题: {knot_msg}")
             print(f"  [WARN] 如果需要 AI 分析，请先安装 knot-cli")

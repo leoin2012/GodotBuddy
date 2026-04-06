@@ -40,104 +40,54 @@ import godot_project_scanner
 # Prompt 构建
 # ============================================================
 
-SYSTEM_PROMPT_TEMPLATE = """# GodotBuddy 项目分析任务
-
-## 你的角色
-你是 **GodotBuddy**，一名资深的 Godot 引擎和 GDScript 游戏开发分析专家。
-
-## 分析目标
-请对以下 Godot 项目进行全面深入的分析，生成一份结构化的 Markdown 分析报告。
-
-## 项目上下文
-{analysis_context}
-
-## 分析要求
-请按照以下结构生成分析报告：
-
-### 1. 项目概览
-- 项目名称、引擎版本、项目类型（2D/3D/混合）
-- 项目规模统计（文件数、代码行数、场景数等）
-- 项目描述和核心玩法
-
-### 2. 架构分析
-- 项目目录结构和组织方式
-- 场景树层级关系
-- 自动加载（Autoload）全局管理器分析
-- 自定义类（class_name）体系
-
-### 3. 核心系统分析
-对每个核心系统进行深入分析：
-- 系统职责和设计模式
-- 关键函数和逻辑流程
-- 数据流和状态管理
-- 与其他系统的交互关系
-
-### 4. 网络/多人游戏架构（如适用）
-- 网络同步策略（MultiplayerSynchronizer / RPC）
-- 服务器-客户端职责划分
-- 网络权限管理
-
-### 5. 输入系统分析
-- 输入映射配置
-- 输入处理流程
-- 支持的输入设备（键鼠/手柄）
-
-### 6. 渲染和视觉效果
-- 渲染管线配置
-- 光照方案（GI 类型、阴影等）
-- 粒子效果和着色器
-- 性能优化设置
-
-### 7. 音频系统
-- 音频总线配置
-- 音效管理方式
-
-### 8. 代码质量评估
-- GDScript 编码规范遵循情况
-- 代码组织和模块化程度
-- 潜在的性能问题
-- 潜在的 Bug 和安全隐患
-- 内存管理和资源加载策略
-
-### 9. 改进建议
-- 架构优化建议
-- 性能优化建议
-- 代码质量改进建议
-- 最佳实践推荐
-
-### 10. 总结
-- 项目整体评价
-- 技术亮点
-- 主要风险点
-- 推荐优先改进项
-
-## 输出要求
-1. 使用中文输出
-2. 使用 Markdown 格式
-3. 对关键代码片段使用代码块引用
-4. 使用 mermaid 流程图展示架构关系（如适用）
-5. 每个分析结论都要有具体的代码证据支撑
-6. 报告开头包含一句话总结（不超过60个汉字）
-
-## 报告输出路径
-请将完整的 Markdown 分析报告写入: {report_path}
-"""
+# Prompt 模板目录
+PROMPT_DIR = os.path.join(ROOT_DIR, "Prompt")
 
 
-def build_analysis_prompt(scan_result, report_path, analysis_focus="all"):
+def load_prompt_template(prompt_file_path):
+    """
+    从外部 md 文件加载 Prompt 模板。
+    
+    :param prompt_file_path: Prompt 模板文件路径（绝对路径或相对于 ROOT_DIR）
+    :return: str 模板文本
+    """
+    # 支持相对路径（相对于 GodotBuddy 根目录）
+    if not os.path.isabs(prompt_file_path):
+        prompt_file_path = os.path.join(ROOT_DIR, prompt_file_path)
+    
+    if not os.path.exists(prompt_file_path):
+        print(f"  [ERROR] Prompt 模板文件不存在: {prompt_file_path}")
+        print(f"  [INFO] 请检查 config.ini 中的 prompt_file 配置")
+        return None
+    
+    with open(prompt_file_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def build_analysis_prompt(scan_result, report_path, analysis_focus="all", prompt_template_path=None):
     """
     构建分析 Prompt。
     
     :param scan_result: 项目扫描结果
     :param report_path: 报告输出路径
     :param analysis_focus: 分析重点
+    :param prompt_template_path: Prompt 模板文件路径（留空则使用默认）
     :return: str Prompt 文本
     """
+    # 加载外部 Prompt 模板
+    if not prompt_template_path:
+        prompt_template_path = os.path.join(PROMPT_DIR, "project_analysis_prompt.md")
+    
+    template = load_prompt_template(prompt_template_path)
+    if template is None:
+        print(f"  [WARN] 无法加载 Prompt 模板，使用最小化 Prompt")
+        template = "# 分析任务\n\n## 项目上下文\n{analysis_context}\n\n## 报告输出路径\n{report_path}"
+    
     # 生成分析上下文
     context = godot_project_scanner.generate_analysis_context(scan_result, analysis_focus)
     
     # 填充模板
-    prompt = SYSTEM_PROMPT_TEMPLATE.format(
+    prompt = template.format(
         analysis_context=context,
         report_path=report_path,
     )
@@ -188,20 +138,22 @@ def run_knot_cli_analysis(prompt_file, report_path, project_dir, config, timeout
     args_template = config.get("cli_tool_args_template", "")
     cli_model = config.get("cli_tool_model", "claude-4.6-opus")
     cli_user_rules = config.get("cli_tool_user_rules", "")
-    cli_workspace = config.get("cli_tool_workspace", project_dir)
     
     if not args_template:
-        return False, "cli_tool_args_template 未配置"
+        return False, "cli_tool_args_template (cli_args_template) 未配置"
     
-    # 替换占位符
+    # 替换占位符（兼容新旧模板变量名）
     args_str = args_template.format(
         prompt_file=prompt_file.replace("\\", "/"),
         report_path=report_path.replace("\\", "/"),
         project_dir=project_dir.replace("\\", "/"),
-        cli_tool_workspace=cli_workspace.replace("\\", "/"),
+        model=cli_model,
+        user_rules=cli_user_rules.replace("\\", "/") if cli_user_rules else "",
+        godotbuddy_dir=ROOT_DIR.replace("\\", "/"),
+        # 兼容旧模板占位符
+        cli_tool_workspace=project_dir.replace("\\", "/"),
         cli_tool_model=cli_model,
         cli_tool_user_rules=cli_user_rules.replace("\\", "/") if cli_user_rules else "",
-        godotbuddy_dir=ROOT_DIR.replace("\\", "/"),
     )
     
     # 构建完整命令
@@ -360,8 +312,11 @@ def analyze_project(project_dir, project_name, config, reports_dir,
     
     print(f"  [Step 2/4] 构建分析 Prompt...")
     
-    # 构建 Prompt
-    prompt_text = build_analysis_prompt(scan_result, report_path, analysis_focus)
+    # 从配置获取 Prompt 模板路径
+    prompt_template_path = config.get("prompt_file", "")
+    
+    # 构建 Prompt（从外部 md 文件加载模板）
+    prompt_text = build_analysis_prompt(scan_result, report_path, analysis_focus, prompt_template_path or None)
     
     # 保存 Prompt 到临时文件
     cache_dir = config.get("cache_base_dir", os.path.join(ROOT_DIR, "Cache"))

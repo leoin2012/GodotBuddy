@@ -147,26 +147,38 @@ def update_knot_cli_token(token, knot_cli_command="knot-cli", version="", verbos
         return False, f"Token 更新异常: {e}"
 
 
-def ensure_knot_cli(cfg, verbose=True):
+def ensure_knot_cli(cfg, section="KnotCLI", verbose=True):
     """
     确保 knot-cli 已安装且 Token 已配置。
     
     :param cfg: configparser.ConfigParser 对象
+    :param section: 配置 section 名称（默认 KnotCLI）
     :param verbose: 是否输出详细日志
     :return: (bool, str) - (是否就绪, 消息)
     """
-    if not cfg.has_section("Analysis"):
-        return True, "无 [Analysis] 配置段，跳过 knot-cli 检查"
+    if not cfg.has_section(section):
+        # 兼容旧配置
+        if cfg.has_section("Analysis"):
+            section = "Analysis"
+        else:
+            return True, f"无 [{section}] 配置段，跳过 knot-cli 检查"
     
-    team_token = cfg.get("Analysis", "knot_team_token", fallback="").strip()
+    team_token = cfg.get(section, "team_token", fallback="").strip()
+    if not team_token:
+        # 兼容旧配置键名
+        team_token = cfg.get(section, "knot_team_token", fallback="").strip()
     if not team_token:
         if verbose:
-            print(f"  [Knot CLI] knot_team_token 未配置，跳过自动安装/更新")
-        return True, "knot_team_token 未配置，跳过"
+            print(f"  [Knot CLI] team_token 未配置，跳过自动安装/更新")
+        return True, "team_token 未配置，跳过"
     
-    cli_command = cfg.get("Analysis", "cli_tool_command", fallback="knot-cli").strip()
-    cli_version = cfg.get("Analysis", "knot_cli_version", fallback="").strip()
-    cli_workspace = cfg.get("Analysis", "cli_tool_workspace", fallback="").strip()
+    cli_command = cfg.get(section, "command", fallback="").strip()
+    if not cli_command:
+        cli_command = cfg.get(section, "cli_tool_command", fallback="knot-cli").strip()
+    cli_version = cfg.get(section, "cli_version", fallback="").strip()
+    if not cli_version:
+        cli_version = cfg.get(section, "knot_cli_version", fallback="").strip()
+    cli_workspace = cfg.get(section, "cli_tool_workspace", fallback="").strip()
     
     if verbose:
         print(f"  [Knot CLI] 检测 knot-cli 环境...")
